@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import {
+  Select,
   Container,
   Grid,
   Card,
   CardContent,
   Typography,
   Box,
+  InputLabel,
+  FormControl,
+  MenuItem,
 } from "@mui/material";
 import PowerChart from "./components/PowerChart";
 import EnergyChart from "./components/EnergyChart";
@@ -14,6 +18,8 @@ import EnergyChart from "./components/EnergyChart";
 import { API_URL } from "./config";
 
 function App() {
+  const [selectedDevice, setSelectedDevice] = useState("ME337-001");
+
   const [devices, setDevices] = useState([]);
 
   const [summary, setSummary] = useState({
@@ -45,7 +51,7 @@ function App() {
 
   const loadHistory = async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/history/ME337-001`);
+      const res = await axios.get(`${API_URL}/api/history/${selectedDevice}`);
 
       setHistory(res.data.data);
     } catch (err) {
@@ -98,16 +104,18 @@ function App() {
 
   //   setHistory(res.data.data);
   // };
+  useEffect(() => {
+    loadHistory();
+  }, [selectedDevice]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
-    loadHistory();
 
     const timer = setInterval(loadData, 5000);
 
     return () => clearInterval(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const getCardColor = (device) => {
@@ -321,6 +329,60 @@ function App() {
           </Card>
         </Grid>
       </Grid> */}
+
+<Card
+  sx={{
+    mb: 3,
+    p: 2
+  }}
+>
+  <FormControl
+    fullWidth
+  >
+    <InputLabel>
+      Device
+    </InputLabel>
+
+    <Select
+
+      value={
+        selectedDevice
+      }
+
+      label="Device"
+
+      onChange={(e)=>
+        setSelectedDevice(
+          e.target.value
+        )
+      }
+
+    >
+
+      {devices.map(
+        (d) => (
+
+          <MenuItem
+            key={
+              d.device_id
+            }
+
+            value={
+              d.device_id
+            }
+          >
+            {d.device_name}
+            {" - "}
+            {d.device_id}
+          </MenuItem>
+
+        )
+      )}
+
+    </Select>
+
+  </FormControl>
+</Card>
 
         <Card
           sx={{
