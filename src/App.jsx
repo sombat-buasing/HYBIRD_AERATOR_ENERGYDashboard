@@ -1,8 +1,18 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Container, Grid, Card, CardContent, Typography } from "@mui/material";
+import {
+  Container,
+  Grid,
+  Card,
+  CardContent,
+  Typography,
+  Box,
+} from "@mui/material";
+import PowerChart from "./components/PowerChart";
+import EnergyChart from "./components/EnergyChart";
 
 import { API_URL } from "./config";
+
 function App() {
   const [devices, setDevices] = useState([]);
 
@@ -14,16 +24,34 @@ function App() {
   });
 
   const formatNumber = (value) => {
+    return Number(value || 0).toLocaleString("en-US", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
+  };
 
-    return Number(value || 0)
-      .toLocaleString(
-        "en-US",
-        {
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 0
-        }
-      );
-};
+  const formatDateTime = () => {
+    return new Date().toLocaleString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+  };
+
+  const [history, setHistory] = useState([]);
+
+  const loadHistory = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/history/ME337-001`);
+
+      setHistory(res.data.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const [refreshTime, setRefreshTime] = useState("");
 
@@ -63,7 +91,7 @@ function App() {
     } catch (err) {
       console.error(err);
     }
-    setRefreshTime(new Date().toLocaleTimeString());
+    setRefreshTime(formatDateTime());
   };
   // const loadHistory = async () => {
   //   const res = await axios.get(`${API_URL}/api/history/ME337-001`);
@@ -71,13 +99,15 @@ function App() {
   //   setHistory(res.data.data);
   // };
 
-    useEffect(() => {
+  useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
+    loadHistory();
 
     const timer = setInterval(loadData, 5000);
 
     return () => clearInterval(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const getCardColor = (device) => {
@@ -111,16 +141,86 @@ function App() {
   );
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 3 }}>
-      <Typography variant="h3" align="center" gutterBottom>
-        Energy Monitor Dashboard
-      </Typography>
+    <>
+      <Box
+        sx={{
+          position: "sticky",
+          top: 0,
+          zIndex: 1000,
 
-      <Typography align="center" color="text.secondary" sx={{ mb: 3 }}>
-        Last Refresh : {refreshTime}
-      </Typography>
+          bgcolor: "#0f172a",
 
-      <Grid container spacing={2} sx={{ mb: 3 }}>
+          borderBottom: "1px solid #333",
+
+          px: 3,
+          py: 2,
+        }}
+      >
+        <Typography
+          variant="h3"
+          align="center"
+          sx={{
+            color: "white",
+            fontWeight: 300,
+          }}
+        >
+          Energy Monitor Dashboard
+        </Typography>
+
+        <Typography
+          align="center"
+          sx={{
+            color: "#cbd5e1",
+            mb: 2,
+          }}
+        >
+          Last Refresh : {refreshTime}
+        </Typography>
+
+        <Grid container spacing={2} justifyContent="center">
+          <Grid item>
+            <Card>
+              <CardContent>
+                <Typography>Devices</Typography>
+                <Typography variant="h4">{summary.devices}</Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item>
+            <Card>
+              <CardContent>
+                <Typography>Online</Typography>
+                <Typography variant="h4">{summary.online}</Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item>
+            <Card>
+              <CardContent>
+                <Typography>Total Power</Typography>
+                <Typography variant="h4">
+                  {summary.power.toFixed(2)} kW
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item>
+            <Card>
+              <CardContent>
+                <Typography>Total Energy</Typography>
+                <Typography variant="h4">
+                  {formatNumber(summary.energy)} kWh
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      </Box>
+      <Container maxWidth="xl" sx={{ mt: 3 }}>
+        {/* <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid item xs={12} md={3}>
           <Card
               sx={{
@@ -220,121 +320,138 @@ function App() {
             </CardContent>
           </Card>
         </Grid>
-      </Grid>
+      </Grid> */}
 
-      <Grid container spacing={3}>
-        {devices.map((d) => (
-          <Grid item xs={12} md={6} lg={4} key={d.device_id}>
-            <Card
-              sx={{
-                bgcolor: getCardColor(d),
-                color: "white",
-                borderRadius: 3,
-                boxShadow: 5,
-              }}
-            >
-              {" "}
-              <CardContent>
-                <Typography
-                  variant="body2"
-                  align="center"
-                  sx={{
-                    opacity: 0.85,
-                    mb: 1
-                  }}
-                >
-                  📍 {d.location_name}
-                </Typography>
+        <Card
+          sx={{
+            mb: 3,
+            p: 2,
+            borderRadius: 3,
+          }}
+        >
+          <Typography variant="h5" align="center" gutterBottom>
+            Power Trend
+          </Typography>
 
-                <Typography
-                  variant="h5"
-                  align="center"
-                  gutterBottom
-                >
-                  {d.device_name}
-                </Typography>
+          <PowerChart history={history} />
+        </Card>
 
-                <Typography
-                  align="center"
-                  sx={{ mb: 2 }}
-                >
-                  {d.device_id}
-                </Typography>
+        <Card
+          sx={{
+            mb: 3,
+            p: 2,
+            borderRadius: 3,
+          }}
+        >
+          <Typography variant="h5" align="center" gutterBottom>
+            Energy Trend
+          </Typography>
 
-                <Row
-                  label="Voltage L1"
-                  value={`${Number(d.voltage_l1).toFixed(1)} V`}
-                />
+          <EnergyChart history={history} />
+        </Card>
 
-                <Row
-                  label="Voltage L2"
-                  value={`${Number(d.voltage_l2).toFixed(1)} V`}
-                />
+        <Grid container spacing={3}>
+          {devices.map((d) => (
+            <Grid item xs={12} md={6} lg={4} key={d.device_id}>
+              <Card
+                sx={{
+                  bgcolor: getCardColor(d),
+                  color: "white",
+                  borderRadius: 3,
+                  boxShadow: 5,
+                }}
+              >
+                {" "}
+                <CardContent>
+                  <Typography
+                    variant="body2"
+                    align="center"
+                    sx={{
+                      opacity: 0.85,
+                      mb: 1,
+                    }}
+                  >
+                    📍 {d.location_name}
+                  </Typography>
 
-                <Row
-                  label="Voltage L3"
-                  value={`${Number(d.voltage_l3).toFixed(1)} V`}
-                />
+                  <Typography variant="h5" align="center" gutterBottom>
+                    {d.device_name}
+                  </Typography>
 
-                <hr />
+                  <Typography align="center" sx={{ mb: 2 }}>
+                    {d.device_id}
+                  </Typography>
 
-                <Row
-                  label="Current L1"
-                  value={`${Number(d.current_l1).toFixed(3)} A`}
-                />
+                  <Row
+                    label="Voltage L1"
+                    value={`${Number(d.voltage_l1).toFixed(1)} V`}
+                  />
 
-                <Row
-                  label="Current L2"
-                  value={`${Number(d.current_l2).toFixed(3)} A`}
-                />
+                  <Row
+                    label="Voltage L2"
+                    value={`${Number(d.voltage_l2).toFixed(1)} V`}
+                  />
 
-                <Row
-                  label="Current L3"
-                  value={`${Number(d.current_l3).toFixed(3)} A`}
-                />
+                  <Row
+                    label="Voltage L3"
+                    value={`${Number(d.voltage_l3).toFixed(1)} V`}
+                  />
 
-                <hr />
+                  <hr />
 
-                <Row
-                  label="Power Total"
-                  value={`${Number(d.power_total).toFixed(3)} kW`}
-                />
+                  <Row
+                    label="Current L1"
+                    value={`${Number(d.current_l1).toFixed(3)} A`}
+                  />
 
-                <Row label="PF Total" value={Number(d.pf_total).toFixed(3)} />
+                  <Row
+                    label="Current L2"
+                    value={`${Number(d.current_l2).toFixed(3)} A`}
+                  />
 
-                <Row
-                  label="Frequency"
-                  value={`${Number(d.frequency).toFixed(2)} Hz`}
-                />
+                  <Row
+                    label="Current L3"
+                    value={`${Number(d.current_l3).toFixed(3)} A`}
+                  />
 
-                <Row
-                  label="Energy"
-                  value={
-                    `${Number(d.energy_kwh)
-                      .toLocaleString(
-                        "en-US",
-                        {
-                          minimumFractionDigits: 3,
-                          maximumFractionDigits: 3
-                        }
-                      )} kWh`
-                  }
-                />
+                  <hr />
 
-                <hr />
+                  <Row
+                    label="Power Total"
+                    value={`${Number(d.power_total).toFixed(3)} kW`}
+                  />
 
-                <Row label="IP Address" value={d.ip_address} />
+                  <Row label="PF Total" value={Number(d.pf_total).toFixed(3)} />
 
-                <Row
-                  label="Last Update"
-                  value={new Date(d.last_update).toLocaleTimeString()}
-                />
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
-    </Container>
+                  <Row
+                    label="Frequency"
+                    value={`${Number(d.frequency).toFixed(2)} Hz`}
+                  />
+
+                  <Row
+                    label="Energy"
+                    value={`${Number(d.energy_kwh).toLocaleString("en-US", {
+                      minimumFractionDigits: 3,
+                      maximumFractionDigits: 3,
+                    })} kWh`}
+                  />
+
+                  <hr />
+
+                  <Row label="IP Address" value={d.ip_address} />
+
+                  <Row
+                    label="Last Update"
+                    value={new Date(d.last_update).toLocaleTimeString()}
+                  />
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      </Container>
+      );
+    </>
   );
 }
 
