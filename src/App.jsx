@@ -13,6 +13,18 @@ function App() {
     energy: 0,
   });
 
+  const formatNumber = (value) => {
+
+    return Number(value || 0)
+      .toLocaleString(
+        "en-US",
+        {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0
+        }
+      );
+};
+
   const [refreshTime, setRefreshTime] = useState("");
 
   const loadData = async () => {
@@ -59,7 +71,7 @@ function App() {
   //   setHistory(res.data.data);
   // };
 
-  useEffect(() => {
+    useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
 
@@ -110,32 +122,74 @@ function App() {
 
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid item xs={12} md={3}>
-          <Card>
+          <Card
+              sx={{
+                height: 120,
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                textAlign: "center",
+                borderRadius: 3,
+                boxShadow: 4
+              }}
+            >
             <CardContent>
 
               <Typography color="text.secondary">Devices</Typography>
 
-              <Typography variant="h4">{summary.devices}</Typography>
+              <Typography
+                variant="h4"
+                fontWeight="bold"
+              >
+                {summary.devices}
+              </Typography>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} md={3}>
-          <Card>
+          <Card
+            sx={{
+              height: 120,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              textAlign: "center",
+              borderRadius: 3,
+              boxShadow: 4
+            }}
+          >
             <CardContent>
               <Typography color="text.secondary">Online</Typography>
 
-              <Typography variant="h4">{summary.online}</Typography>
+              <Typography
+                variant="h4"
+                fontWeight="bold"
+              >
+                {summary.online}</Typography>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} md={3}>
-          <Card>
+          <Card
+            sx={{
+              height: 120,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              textAlign: "center",
+              borderRadius: 3,
+              boxShadow: 4
+            }}
+          >
             <CardContent>
               <Typography color="text.secondary">Total Power</Typography>
 
-              <Typography variant="h4">
+              <Typography
+                variant="h4"
+                fontWeight="bold"
+              >
                 {summary.power.toFixed(2)} kW
               </Typography>
             </CardContent>
@@ -143,12 +197,25 @@ function App() {
         </Grid>
 
         <Grid item xs={12} md={3}>
-          <Card>
+          <Card
+            sx={{
+              height: 120,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              textAlign: "center",
+              borderRadius: 3,
+              boxShadow: 4
+            }}
+          >
             <CardContent>
               <Typography color="text.secondary">Total Energy</Typography>
 
-              <Typography variant="h4">
-                {summary.energy.toFixed(0)} kWh
+              <Typography
+                variant="h4"
+                fontWeight="bold"
+              >
+                {formatNumber(summary.energy)} kWh
               </Typography>
             </CardContent>
           </Card>
@@ -168,11 +235,29 @@ function App() {
             >
               {" "}
               <CardContent>
-                <Typography variant="h5" align="center" gutterBottom>
+                <Typography
+                  variant="body2"
+                  align="center"
+                  sx={{
+                    opacity: 0.85,
+                    mb: 1
+                  }}
+                >
+                  📍 {d.location_name}
+                </Typography>
+
+                <Typography
+                  variant="h5"
+                  align="center"
+                  gutterBottom
+                >
                   {d.device_name}
                 </Typography>
 
-                <Typography align="center" sx={{ mb: 2 }}>
+                <Typography
+                  align="center"
+                  sx={{ mb: 2 }}
+                >
                   {d.device_id}
                 </Typography>
 
@@ -224,7 +309,16 @@ function App() {
 
                 <Row
                   label="Energy"
-                  value={`${Number(d.energy_kwh).toFixed(3)} kWh`}
+                  value={
+                    `${Number(d.energy_kwh)
+                      .toLocaleString(
+                        "en-US",
+                        {
+                          minimumFractionDigits: 3,
+                          maximumFractionDigits: 3
+                        }
+                      )} kWh`
+                  }
                 />
 
                 <hr />
