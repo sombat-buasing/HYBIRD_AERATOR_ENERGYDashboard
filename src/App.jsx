@@ -50,6 +50,7 @@ function App() {
 
   const [history, setHistory] = useState([]);
 
+  // eslint-disable-next-line no-unused-vars
   const loadHistory = async () => {
     if (!selectedDevice) {
       return;
@@ -108,23 +109,68 @@ function App() {
     }
     setRefreshTime(formatDateTime());
   };
+  const [dailySummary, setDailySummary] = useState({
+    today: 0,
+    yesterday: 0,
+  });
+
+  const loadDailySummary = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/summary/${selectedDevice}`);
+
+      const rows = res.data.data || [];
+
+      setDailySummary({
+        today: Number(rows[0]?.daily_kwh || 0),
+        yesterday: Number(rows[1]?.daily_kwh || 0),
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    if (!selectedDevice) return;
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadDailySummary();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDevice]);
 
   useEffect(() => {
     if (!selectedDevice) {
       return;
     }
 
-    const fetchHistory = async () => {
+    const fetchData = async () => {
       try {
-        const res = await axios.get(`${API_URL}/api/history/${selectedDevice}`);
+        const historyRes = await axios.get(
+          `${API_URL}/api/history/${selectedDevice}`,
+        );
 
-        setHistory(res.data.data || []);
+        setHistory(historyRes.data.data || []);
+
+        const summaryRes = await axios.get(
+          `${API_URL}/api/daily-summary/${selectedDevice}`,
+        );
+
+        const rows = summaryRes.data.data || [];
+
+        const today = Number(rows[0]?.daily_kwh || 0);
+
+        const yesterday = Number(rows[1]?.daily_kwh || 0);
+
+        setDailySummary({
+          today,
+          yesterday,
+          diff: today - yesterday,
+        });
       } catch (err) {
         console.error(err);
       }
     };
 
-    fetchHistory();
+    fetchData();
   }, [selectedDevice]);
 
   useEffect(() => {
@@ -133,9 +179,14 @@ function App() {
 
     const timer = setInterval(() => {
       loadData();
+
+      if (selectedDevice) {
+        loadDailySummary();
+      }
     }, 5000);
 
     return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const getCardColor = (device) => {
@@ -168,9 +219,8 @@ function App() {
     </div>
   );
 
-
   console.log("History Count =", history.length);
-console.log(history);
+  console.log(history);
 
   return (
     <>
@@ -211,149 +261,113 @@ console.log(history);
 
         <Grid container spacing={2} justifyContent="center">
           <Grid item>
-            <Card>
+            <Card
+              sx={{
+                bgcolor: "white",
+                color: "black",
+                minWidth: 120,
+              }}
+            >
               <CardContent>
-                <Typography>Devices</Typography>
+                <Typography>Total</Typography>
                 <Typography variant="h4">{summary.devices}</Typography>
+                <Typography variant="body2">Devices</Typography>
               </CardContent>
             </Card>
           </Grid>
 
           <Grid item>
-            <Card>
+            <Card
+              sx={{
+                bgcolor: "white",
+                color: "black",
+                minWidth: 120,
+              }}
+            >
               <CardContent>
                 <Typography>Online</Typography>
                 <Typography variant="h4">{summary.online}</Typography>
+                <Typography variant="body2">Devices</Typography>
               </CardContent>
             </Card>
           </Grid>
 
           <Grid item>
-            <Card>
+            <Card
+              sx={{
+                bgcolor: "white",
+                color: "black",
+                minWidth: 180,
+              }}
+            >
               <CardContent>
                 <Typography>Total Power</Typography>
                 <Typography variant="h4">
-                  {summary.power.toFixed(2)} kW
+                  {summary.power.toFixed(2)}
                 </Typography>
+                <Typography variant="body2">kW</Typography>
               </CardContent>
             </Card>
           </Grid>
 
           <Grid item>
-            <Card>
+            <Card
+              sx={{
+                bgcolor: "white",
+                color: "black",
+                minWidth: 215,
+              }}
+            >
               <CardContent>
                 <Typography>Total Energy</Typography>
                 <Typography variant="h4">
-                  {formatNumber(summary.energy)} kWh
+                  {formatNumber(summary.energy)}
                 </Typography>
+                <Typography variant="body2">kWh</Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item>
+            <Card
+              sx={{
+                bgcolor: "#2e7d32",
+                color: "white",
+                minWidth: 180,
+              }}
+            >
+              <CardContent>
+                <Typography color="text.secondary">Today Energy</Typography>
+
+                <Typography variant="h4">
+                  {dailySummary.today.toFixed(3)}
+                </Typography>
+
+                <Typography variant="body2">kWh</Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item>
+            <Card
+              sx={{
+                bgcolor: "#1565c0",
+                color: "white",
+                minWidth: 180,
+              }}
+            >
+              <CardContent>
+                <Typography color="text.secondary">Previous Day</Typography>
+
+                <Typography variant="h4">
+                  {dailySummary.yesterday.toFixed(3)}
+                </Typography>
+
+                <Typography variant="body2">kWh</Typography>
               </CardContent>
             </Card>
           </Grid>
         </Grid>
       </Box>
       <Container maxWidth="xl" sx={{ mt: 3 }}>
-        {/* <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={3}>
-          <Card
-              sx={{
-                height: 120,
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-                textAlign: "center",
-                borderRadius: 3,
-                boxShadow: 4
-              }}
-            >
-            <CardContent>
-
-              <Typography color="text.secondary">Devices</Typography>
-
-              <Typography
-                variant="h4"
-                fontWeight="bold"
-              >
-                {summary.devices}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={3}>
-          <Card
-            sx={{
-              height: 120,
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              textAlign: "center",
-              borderRadius: 3,
-              boxShadow: 4
-            }}
-          >
-            <CardContent>
-              <Typography color="text.secondary">Online</Typography>
-
-              <Typography
-                variant="h4"
-                fontWeight="bold"
-              >
-                {summary.online}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={3}>
-          <Card
-            sx={{
-              height: 120,
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              textAlign: "center",
-              borderRadius: 3,
-              boxShadow: 4
-            }}
-          >
-            <CardContent>
-              <Typography color="text.secondary">Total Power</Typography>
-
-              <Typography
-                variant="h4"
-                fontWeight="bold"
-              >
-                {summary.power.toFixed(2)} kW
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={3}>
-          <Card
-            sx={{
-              height: 120,
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              textAlign: "center",
-              borderRadius: 3,
-              boxShadow: 4
-            }}
-          >
-            <CardContent>
-              <Typography color="text.secondary">Total Energy</Typography>
-
-              <Typography
-                variant="h4"
-                fontWeight="bold"
-              >
-                {formatNumber(summary.energy)} kWh
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid> */}
-
         <Card
           sx={{
             mb: 3,
@@ -507,9 +521,8 @@ console.log(history);
           ))}
         </Grid>
       </Container>
-      
     </>
-  ) 
+  );
 }
 
 export default App;
