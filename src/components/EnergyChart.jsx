@@ -6,7 +6,9 @@ import {
   LineElement,
   Tooltip,
   Legend,
-} from "chart.js";
+  Filler
+}
+from "chart.js";
 
 import { Line } from "react-chartjs-2";
 
@@ -17,6 +19,7 @@ ChartJS.register(
   LineElement,
   Tooltip,
   Legend,
+  Filler
 );
 
 function EnergyChart({ history }) {

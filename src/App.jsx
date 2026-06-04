@@ -1,24 +1,25 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import {
+  FormControl,
+  InputLabel,
   Select,
+  MenuItem,
   Container,
   Grid,
   Card,
   CardContent,
   Typography,
   Box,
-  InputLabel,
-  FormControl,
-  MenuItem,
 } from "@mui/material";
+
 import PowerChart from "./components/PowerChart";
 import EnergyChart from "./components/EnergyChart";
 
 import { API_URL } from "./config";
 
 function App() {
-  const [selectedDevice, setSelectedDevice] = useState("ME337-001");
+  const [selectedDevice, setSelectedDevice] = useState("");
 
   const [devices, setDevices] = useState([]);
 
@@ -50,10 +51,14 @@ function App() {
   const [history, setHistory] = useState([]);
 
   const loadHistory = async () => {
+    if (!selectedDevice) {
+      return;
+    }
+
     try {
       const res = await axios.get(`${API_URL}/api/history/${selectedDevice}`);
 
-      setHistory(res.data.data);
+      setHistory(res.data.data || []);
     } catch (err) {
       console.error(err);
     }
@@ -68,6 +73,10 @@ function App() {
       const data = res.data.data || [];
 
       setDevices(data);
+
+      if (!selectedDevice && data.length > 0) {
+        setSelectedDevice(data[0].device_id);
+      }
 
       const onlineCount = data.filter((d) => {
         const diff = (new Date() - new Date(d.last_update)) / 1000 / 60;
@@ -99,23 +108,34 @@ function App() {
     }
     setRefreshTime(formatDateTime());
   };
-  // const loadHistory = async () => {
-  //   const res = await axios.get(`${API_URL}/api/history/ME337-001`);
 
-  //   setHistory(res.data.data);
-  // };
   useEffect(() => {
-    loadHistory();
+    if (!selectedDevice) {
+      return;
+    }
+
+    const fetchHistory = async () => {
+      try {
+        const res = await axios.get(`${API_URL}/api/history/${selectedDevice}`);
+
+        setHistory(res.data.data || []);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchHistory();
   }, [selectedDevice]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
 
-    const timer = setInterval(loadData, 5000);
+    const timer = setInterval(() => {
+      loadData();
+    }, 5000);
 
     return () => clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const getCardColor = (device) => {
@@ -147,6 +167,10 @@ function App() {
       <strong>{value}</strong>
     </div>
   );
+
+
+  console.log("History Count =", history.length);
+console.log(history);
 
   return (
     <>
@@ -330,59 +354,30 @@ function App() {
         </Grid>
       </Grid> */}
 
-<Card
-  sx={{
-    mb: 3,
-    p: 2
-  }}
->
-  <FormControl
-    fullWidth
-  >
-    <InputLabel>
-      Device
-    </InputLabel>
+        <Card
+          sx={{
+            mb: 3,
+            p: 2,
+          }}
+        >
+          <FormControl fullWidth>
+            <InputLabel>Device</InputLabel>
 
-    <Select
-
-      value={
-        selectedDevice
-      }
-
-      label="Device"
-
-      onChange={(e)=>
-        setSelectedDevice(
-          e.target.value
-        )
-      }
-
-    >
-
-      {devices.map(
-        (d) => (
-
-          <MenuItem
-            key={
-              d.device_id
-            }
-
-            value={
-              d.device_id
-            }
-          >
-            {d.device_name}
-            {" - "}
-            {d.device_id}
-          </MenuItem>
-
-        )
-      )}
-
-    </Select>
-
-  </FormControl>
-</Card>
+            <Select
+              value={selectedDevice}
+              label="Device"
+              onChange={(e) => setSelectedDevice(e.target.value)}
+            >
+              {devices.map((d) => (
+                <MenuItem key={d.device_id} value={d.device_id}>
+                  {d.device_name}
+                  {" - "}
+                  {d.device_id}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Card>
 
         <Card
           sx={{
@@ -512,9 +507,9 @@ function App() {
           ))}
         </Grid>
       </Container>
-      );
+      
     </>
-  );
+  ) 
 }
 
 export default App;
