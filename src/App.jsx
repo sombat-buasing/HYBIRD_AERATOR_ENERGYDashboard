@@ -13,6 +13,9 @@ import {
   Box,
 } from "@mui/material";
 
+import DownloadIcon from "@mui/icons-material/Download";
+import Button from "@mui/material/Button";
+
 import PowerChart from "./components/PowerChart";
 import EnergyChart from "./components/EnergyChart";
 
@@ -129,11 +132,25 @@ function App() {
     }
   };
 
+  const [monthly, setMonthly] = useState([]);
+
+  // eslint-disable-next-line no-unused-vars
+  const loadMonthly = async (deviceId) => {
+    try {
+      const res = await axios.get(`${API_URL}/api/monthly/${deviceId}`);
+
+      setMonthly(res.data.data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     if (!selectedDevice) return;
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadDailySummary();
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDevice]);
 
@@ -165,6 +182,14 @@ function App() {
           yesterday,
           diff: today - yesterday,
         });
+
+        // ===== Monthly =====
+
+        const monthlyRes = await axios.get(
+          `${API_URL}/api/monthly/${selectedDevice}`,
+        );
+
+        setMonthly(monthlyRes.data.data || []);
       } catch (err) {
         console.error(err);
       }
@@ -219,23 +244,15 @@ function App() {
     </div>
   );
 
-  console.log("History Count =", history.length);
-  console.log(history);
-
   return (
     <>
       <Box
         sx={{
-          position: "sticky",
-          top: 0,
-          zIndex: 1000,
-
-          bgcolor: "#0f172a",
-
-          borderBottom: "1px solid #333",
-
-          px: 3,
-          py: 2,
+          display: "flex",
+          justifyContent: "center",
+          gap: 2,
+          flexWrap: "wrap",
+          mb: 2,
         }}
       >
         <Typography
@@ -258,115 +275,113 @@ function App() {
         >
           Last Refresh : {refreshTime}
         </Typography>
-
-        <Grid container spacing={2} justifyContent="center">
-          <Grid item>
-            <Card
-              sx={{
-                bgcolor: "white",
-                color: "black",
-                minWidth: 120,
-              }}
-            >
-              <CardContent>
-                <Typography>Total</Typography>
-                <Typography variant="h4">{summary.devices}</Typography>
-                <Typography variant="body2">Devices</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item>
-            <Card
-              sx={{
-                bgcolor: "white",
-                color: "black",
-                minWidth: 120,
-              }}
-            >
-              <CardContent>
-                <Typography>Online</Typography>
-                <Typography variant="h4">{summary.online}</Typography>
-                <Typography variant="body2">Devices</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item>
-            <Card
-              sx={{
-                bgcolor: "white",
-                color: "black",
-                minWidth: 180,
-              }}
-            >
-              <CardContent>
-                <Typography>Total Power</Typography>
-                <Typography variant="h4">
-                  {summary.power.toFixed(2)}
-                </Typography>
-                <Typography variant="body2">kW</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item>
-            <Card
-              sx={{
-                bgcolor: "white",
-                color: "black",
-                minWidth: 215,
-              }}
-            >
-              <CardContent>
-                <Typography>Total Energy</Typography>
-                <Typography variant="h4">
-                  {formatNumber(summary.energy)}
-                </Typography>
-                <Typography variant="body2">kWh</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item>
-            <Card
-              sx={{
-                bgcolor: "#2e7d32",
-                color: "white",
-                minWidth: 180,
-              }}
-            >
-              <CardContent>
-                <Typography color="text.secondary">Today Energy</Typography>
-
-                <Typography variant="h4">
-                  {dailySummary.today.toFixed(3)}
-                </Typography>
-
-                <Typography variant="body2">kWh</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item>
-            <Card
-              sx={{
-                bgcolor: "#1565c0",
-                color: "white",
-                minWidth: 180,
-              }}
-            >
-              <CardContent>
-                <Typography color="text.secondary">Previous Day</Typography>
-
-                <Typography variant="h4">
-                  {dailySummary.yesterday.toFixed(3)}
-                </Typography>
-
-                <Typography variant="body2">kWh</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
       </Box>
+
+      <Grid container spacing={2} justifyContent="center" sx={{ mb: 2 }}>
+        <Grid item xs={12} sm={6} md={2}>
+          <Card sx={{ width: "100%" }}>
+            <CardContent sx={{ textAlign: "center" }}>
+              <Typography>Total</Typography>
+              <Typography variant="h3">{summary.devices}</Typography>
+              <Typography variant="body2">Devices</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={2}>
+          <Card sx={{ width: "100%", bgcolor: "white", color: "black" }}>
+            <CardContent sx={{ textAlign: "center" }}>
+              <Typography>Online</Typography>
+              <Typography variant="h3">{summary.online}</Typography>
+              <Typography variant="body2">Devices</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ width: "100%", bgcolor: "white", color: "black" }}>
+            <CardContent sx={{ textAlign: "center" }}>
+              <Typography>Total Power</Typography>
+              <Typography variant="h3">{summary.power.toFixed(2)}</Typography>
+              <Typography variant="body2">kW</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={5}>
+          <Card sx={{ width: "100%", bgcolor: "white", color: "black" }}>
+            <CardContent sx={{ textAlign: "center" }}>
+              <Typography>Total Energy</Typography>
+              <Typography variant="h3">
+                {formatNumber(summary.energy)}
+              </Typography>
+              <Typography variant="body2">kWh</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      <Grid container spacing={2} justifyContent="center" sx={{ mb: 2 }}>
+        <Grid item xs={12} sm={4} md={3}>
+          <Card
+            sx={{
+              bgcolor: "#2e7d32",
+              color: "white",
+            }}
+          >
+            <CardContent sx={{ textAlign: "center" }}>
+              <Typography variant="h6">Today Energy</Typography>
+
+              <Typography variant="h3">
+                {dailySummary.today.toFixed(3)}
+              </Typography>
+
+              <Typography>kWh</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={4} md={3}>
+          <Card
+            sx={{
+              bgcolor: "#1565c0",
+              color: "white",
+            }}
+          >
+            <CardContent sx={{ textAlign: "center" }}>
+              <Typography variant="h6">Previous Day</Typography>
+
+              <Typography variant="h3">
+                {dailySummary.yesterday.toFixed(3)}
+              </Typography>
+
+              <Typography>kWh</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={4} md={3}>
+          <Card
+            sx={{
+              bgcolor: "#7b1fa2",
+              color: "white",
+            }}
+          >
+            <CardContent sx={{ textAlign: "center" }}>
+              <Typography variant="h6">This Month</Typography>
+
+              <Typography variant="h3">
+                {monthly.length > 0
+                  ? Number(monthly[0].monthly_kwh).toFixed(3)
+                  : "0.000"}
+              </Typography>
+
+              <Typography>kWh</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
       <Container maxWidth="xl" sx={{ mt: 3 }}>
         <Card
           sx={{
@@ -392,6 +407,27 @@ function App() {
             </Select>
           </FormControl>
         </Card>
+
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "flex-end",
+            mb: 2,
+          }}
+        >
+          <Button
+            variant="contained"
+            startIcon={<DownloadIcon />}
+            onClick={() =>
+              window.open(
+                `${API_URL}/api/export/daily/${selectedDevice}`,
+                "_blank",
+              )
+            }
+          >
+            Export Excel
+          </Button>
+        </Box>
 
         <Card
           sx={{
