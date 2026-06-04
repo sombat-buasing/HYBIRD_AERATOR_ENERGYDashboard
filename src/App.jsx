@@ -13,8 +13,11 @@ import {
   Box,
 } from "@mui/material";
 
-import DownloadIcon from "@mui/icons-material/Download";
+// import DownloadIcon from "@mui/icons-material/Download";
 import Button from "@mui/material/Button";
+
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 
 import PowerChart from "./components/PowerChart";
 import EnergyChart from "./components/EnergyChart";
@@ -244,6 +247,109 @@ function App() {
     </div>
   );
 
+  const exportExcel = async () => {
+    try {
+
+      const workbook = new ExcelJS.Workbook();
+
+      const worksheet =
+        workbook.addWorksheet("Energy Report");
+
+      worksheet.columns = [
+        { header: "Date Time", key: "created_at", width: 25 },
+
+        { header: "Voltage L1", key: "voltage_l1", width: 12 },
+        { header: "Voltage L2", key: "voltage_l2", width: 12 },
+        { header: "Voltage L3", key: "voltage_l3", width: 12 },
+
+        { header: "Current L1", key: "current_l1", width: 12 },
+        { header: "Current L2", key: "current_l2", width: 12 },
+        { header: "Current L3", key: "current_l3", width: 12 },
+
+        { header: "Power Total", key: "power_total", width: 12 },
+
+        { header: "PF Total", key: "pf_total", width: 12 },
+
+        { header: "Frequency", key: "frequency", width: 12 },
+
+        { header: "Energy kWh", key: "energy_kwh", width: 15 }
+      ];
+
+      worksheet.autoFilter = {
+        from: "A1",
+        to: "K1"
+      };
+
+      worksheet.views = [
+        {
+          state: "frozen",
+          ySplit: 1
+        }
+      ];
+
+      worksheet.getRow(1).eachCell((cell) => {
+
+        cell.font = {
+          bold: true,
+          color: { argb: "FFFFFFFF" }
+        };
+
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: {
+            argb: "1F4E78"
+          }
+        };
+
+      });
+
+
+
+      history.forEach((row) => {
+
+        worksheet.addRow({
+          created_at:
+            new Date(
+              row.created_at
+            ).toLocaleString(),
+
+          voltage_l1:
+            row.voltage_l1,
+
+          current_l1:
+            row.current_l1,
+
+          power_total:
+            row.power_total,
+
+          energy_kwh:
+            row.energy_kwh
+        });
+
+      });
+
+      worksheet.getRow(1).font = {
+        bold: true
+      };
+
+      const buffer =
+        await workbook.xlsx.writeBuffer();
+
+      saveAs(
+        new Blob([buffer]),
+        `${selectedDevice}_${new Date()
+          .toISOString()
+          .slice(0,10)}.xlsx`
+      );
+
+    } catch (err) {
+
+      console.error(err);
+
+    }
+  };
+
   return (
     <>
       <Box
@@ -417,15 +523,9 @@ function App() {
         >
           <Button
             variant="contained"
-            startIcon={<DownloadIcon />}
-            onClick={() =>
-              window.open(
-                `${API_URL}/api/export/daily/${selectedDevice}`,
-                "_blank",
-              )
-            }
+            onClick={exportExcel}
           >
-            Export Excel
+            EXPORT EXCEL
           </Button>
         </Box>
 
