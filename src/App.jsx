@@ -161,11 +161,41 @@ function App() {
     }
   };
 
+  const [peak, setPeak] = useState({
+    today: 0,
+    month: 0,
+  });
+
+  const loadPeakSummary = async () => {
+    if (!selectedDevice) return;
+
+    try {
+      const res = await axios.get(
+        `${API_URL}/api/peak-summary/${selectedDevice}`
+      );
+
+      console.log(res.data);
+      setPeak({
+        today: Number(
+          res.data.data.peak_today || 0
+        ),
+        month: Number(
+          res.data.data.peak_month || 0
+        ),
+      });
+
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     if (!selectedDevice) return;
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadDailySummary();
+    loadMonthly(selectedDevice);
+    loadPeakSummary();
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDevice]);
@@ -206,6 +236,7 @@ function App() {
         );
 
         setMonthly(monthlyRes.data.data || []);
+
       } catch (err) {
         console.error(err);
       }
@@ -225,6 +256,8 @@ function App() {
 
       if (selectedDevice) {
         loadDailySummary();
+        loadMonthly(selectedDevice);
+        loadPeakSummary();
       }
     }, 5000);
 
@@ -513,6 +546,28 @@ function App() {
             </CardContent>
           </Card>
         </Grid>
+
+        <Grid item xs={12} sm={4} md={3}>
+          <Card sx={{minWidth: 180,height: 140, bgcolor: "#00897b", color: "white", }}>
+            <CardContent sx={{ textAlign: "center" }}>
+              <Typography variant="h6">Peak Today</Typography>
+              <Typography variant="h3">{peak.today.toFixed(3)}</Typography>
+              <Typography>kW</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={4} md={3}>
+          <Card sx={{minWidth: 180,height: 140, bgcolor: "#5e35b1", color: "white", }}>
+            <CardContent sx={{ textAlign: "center" }}>
+              <Typography variant="h6">Peak Month</Typography>
+              <Typography variant="h3">{peak.month.toFixed(3)}</Typography>
+              <Typography>kW</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+
       </Grid>
 
       <Container maxWidth="xl" sx={{ mt: 3 }}>
