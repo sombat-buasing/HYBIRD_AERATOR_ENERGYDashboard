@@ -1,20 +1,19 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+
 import {
   FormControl,
   InputLabel,
   Select,
   MenuItem,
   Container,
-  Grid,
   Card,
+  Grid,
   CardContent,
   Typography,
   Box,
+  Button,
 } from "@mui/material";
-
-// import DownloadIcon from "@mui/icons-material/Download";
-import Button from "@mui/material/Button";
 
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
@@ -148,9 +147,18 @@ function App() {
     }
   };
 
+  const loadDeviceConfig = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/device-config`);
+
+      setDeviceConfig(res.data.data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const [monthly, setMonthly] = useState([]);
 
-  // eslint-disable-next-line no-unused-vars
   const loadMonthly = async (deviceId) => {
     try {
       const res = await axios.get(`${API_URL}/api/monthly/${deviceId}`);
@@ -171,22 +179,23 @@ function App() {
 
     try {
       const res = await axios.get(
-        `${API_URL}/api/peak-summary/${selectedDevice}`
+        `${API_URL}/api/peak-summary/${selectedDevice}`,
       );
 
       console.log(res.data);
       setPeak({
-        today: Number(
-          res.data.data.peak_today || 0
-        ),
-        month: Number(
-          res.data.data.peak_month || 0
-        ),
+        today: Number(res.data.data.peak_today || 0),
+        month: Number(res.data.data.peak_month || 0),
       });
-
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const [deviceConfig, setDeviceConfig] = useState([]);
+
+  const getDeviceConfig = (deviceId) => {
+    return deviceConfig.find((d) => d.device_id === deviceId);
   };
 
   useEffect(() => {
@@ -236,7 +245,6 @@ function App() {
         );
 
         setMonthly(monthlyRes.data.data || []);
-
       } catch (err) {
         console.error(err);
       }
@@ -248,11 +256,11 @@ function App() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
+    loadConfig();
+    loadDeviceConfig();
 
     const timer = setInterval(() => {
       loadData();
-
-      loadConfig();
 
       if (selectedDevice) {
         loadDailySummary();
@@ -411,165 +419,183 @@ function App() {
         </Typography>
       </Box>
 
-      <Grid container spacing={2} justifyContent="center" sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md="auto">
-          <Card sx={{ minWidth: 180, height: 140 }}>
-            <CardContent sx={{ textAlign: "center" }}>
-              <Typography variant="h6">Total</Typography>
-              <Typography variant="h3">{summary.devices}</Typography>
-              <Typography variant="body2">Devices</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+      <Box
+        sx={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 2,
+          justifyContent: "center",
+          mb: 3,
+          maxWidth: 1400,
+          mx: "auto",
+        }}
+      >
+        {/* Total */}
+        <Card sx={{ width: 220, height: 140 }}>
+          <CardContent sx={{ textAlign: "center" }}>
+            <Typography variant="h6">Total</Typography>
+            <Typography variant="h3">{summary.devices}</Typography>
+            <Typography variant="body2">Devices</Typography>
+          </CardContent>
+        </Card>
 
-        <Grid item xs={12} sm={6} md={2}>
-          <Card
-            sx={{ minWidth: 180,
-              height: 140,
-              bgcolor: "white",
-              color: "black",
-            }}
-          >
-            <CardContent sx={{ textAlign: "center" }}>
-              <Typography>Online</Typography>
-              <Typography variant="h3">{summary.online}</Typography>
-              <Typography variant="body2">Devices</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+        {/* Online */}
+        <Card sx={{ width: 220, height: 140 }}>
+          <CardContent sx={{ textAlign: "center" }}>
+            <Typography variant="h6">Online</Typography>
+            <Typography variant="h3">{summary.online}</Typography>
+            <Typography variant="body2">Devices</Typography>
+          </CardContent>
+        </Card>
 
-        <Grid item xs={12} sm={6} md={3}>
-          <Card
-            sx={{ minWidth: 180, height: 140, bgcolor: "white", color: "black",}}
-          >
-            <CardContent sx={{ textAlign: "center" }}>
-              <Typography variant="h6">Total Power</Typography>
-              <Typography variant="h3">{summary.power.toFixed(2)}</Typography>
-              <Typography variant="body2">kW</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+        {/* Total Power */}
+        <Card sx={{ width: 220, height: 140 }}>
+          <CardContent sx={{ textAlign: "center" }}>
+            <Typography variant="h6">Total Power</Typography>
+            <Typography variant="h3">{summary.power.toFixed(2)}</Typography>
+            <Typography variant="body2">kW</Typography>
+          </CardContent>
+        </Card>
 
-        <Grid item xs={12} sm={6} md={2}>
-          <Card
-            sx={{
-              minWidth: 374,
-              height: 140,
-              bgcolor: "white",
-              color: "black",
-            }}
-          >
-            <CardContent sx={{ textAlign: "center" }}>
-              <Typography variant="h6">Total Energy</Typography>
-              <Typography variant="h3">{formatNumber(summary.energy)}
-              </Typography>
-              <Typography variant="body2">kWh</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+        {/* Total Energy */}
+        <Card sx={{ width: 220, height: 140 }}>
+          <CardContent sx={{ textAlign: "center" }}>
+            <Typography variant="h6">Total Energy</Typography>
+            <Typography variant="h3">{formatNumber(summary.energy)}</Typography>
+            <Typography variant="body2">kWh</Typography>
+          </CardContent>
+        </Card>
 
-      <Grid container spacing={2} justifyContent="center" sx={{ mb: 2 }}>
-        <Grid item xs={12} sm={4} md={2}>
-          <Card
-            sx={{
-              minWidth: 180,
-              height: 140,
-              bgcolor: "#2e7d32",
-              color: "white",
-            }}
-          >
-            <CardContent sx={{ textAlign: "center" }}>
-              <Typography variant="h6">Today Energy</Typography>
-              <Typography variant="h3">{dailySummary.today.toFixed(3)}</Typography>
-              <Typography variant="body2">kWh</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+        {/* Today Energy */}
+        <Card
+          sx={{
+            width: 220,
+            height: 140,
+            bgcolor: "#2e7d32",
+            color: "white",
+          }}
+        >
+          <CardContent sx={{ textAlign: "center" }}>
+            <Typography variant="h6">Today Energy</Typography>
+            <Typography variant="h3">
+              {dailySummary.today.toFixed(3)}
+            </Typography>
+            <Typography>kWh</Typography>
+          </CardContent>
+        </Card>
 
-        <Grid item xs={12} sm={4} md={2}>
-          <Card
-            sx={{minWidth: 180, height: 140, bgcolor: "#1565c0", color: "white",}}>
-            <CardContent sx={{ textAlign: "center" }}>
-              <Typography variant="h6">Previous Day</Typography>
-              <Typography variant="h3">{dailySummary.yesterday.toFixed(3)}</Typography>
-              <Typography >kWh</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+        {/* Previous Day */}
+        <Card
+          sx={{
+            width: 220,
+            height: 140,
+            bgcolor: "#1565c0",
+            color: "white",
+          }}
+        >
+          <CardContent sx={{ textAlign: "center" }}>
+            <Typography variant="h6">Previous Day</Typography>
+            <Typography variant="h3">
+              {dailySummary.yesterday.toFixed(3)}
+            </Typography>
+            <Typography>kWh</Typography>
+          </CardContent>
+        </Card>
 
-        <Grid item xs={12} sm={4} md={2}>
-          <Card sx={{minWidth: 180,
-              height: 140,
-              bgcolor: "#7b1fa2",
-              color: "white",
-            }}
-          >
-            <CardContent sx={{ textAlign: "center" }}>
-              <Typography variant="h6">This Month</Typography>
-              <Typography variant="h3">{config ? monthCost.toFixed(2) : "..."}</Typography>
-              <Typography >kWh</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+        {/* This Month */}
+        <Card
+          sx={{
+            width: 220,
+            height: 140,
+            bgcolor: "#7b1fa2",
+            color: "white",
+          }}
+        >
+          <CardContent sx={{ textAlign: "center" }}>
+            <Typography variant="h6">This Month</Typography>
 
-        <Grid item xs={12} sm={4} md={2}>
-          <Card
-            sx={{minWidth: 180,height: 140, 
-              bgcolor: "#ef6c00",
-              color: "white",
-            }}
-          >
-            <CardContent sx={{ textAlign: "center" }}>
-              <Typography variant="h6">Today Cost</Typography>
+            <Typography variant="h3">
+              {monthly.length > 0
+                ? Number(monthly[0].monthly_kwh).toFixed(3)
+                : "0.000"}
+            </Typography>
 
-              <Typography variant="h3">{todayCost.toFixed(2)}</Typography>
+            <Typography>kWh</Typography>
+          </CardContent>
+        </Card>
 
-              <Typography variant="body2">THB</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+        {/* Today Cost */}
+        <Card
+          sx={{
+            width: 220,
+            height: 140,
+            bgcolor: "#ef6c00",
+            color: "white",
+          }}
+        >
+          <CardContent sx={{ textAlign: "center" }}>
+            <Typography variant="h6">Today Cost</Typography>
 
-        <Grid item xs={12} sm={4} md={3}>
-          <Card
-            sx={{minWidth: 180,height: 140, 
-              bgcolor: "#d84315",
-              color: "white",
-            }}
-          >
-            <CardContent sx={{ textAlign: "center" }}>
-              <Typography variant="h6">Month Cost</Typography>
+            <Typography variant="h3">{todayCost.toFixed(2)}</Typography>
 
-              <Typography variant="h3">{monthCost.toFixed(2)}</Typography>
+            <Typography>THB</Typography>
+          </CardContent>
+        </Card>
 
-              <Typography>THB</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+        {/* Month Cost */}
+        <Card
+          sx={{
+            width: 220,
+            height: 140,
+            bgcolor: "#d84315",
+            color: "white",
+          }}
+        >
+          <CardContent sx={{ textAlign: "center" }}>
+            <Typography variant="h6">Month Cost</Typography>
 
-        <Grid item xs={12} sm={4} md={3}>
-          <Card sx={{minWidth: 180,height: 140, bgcolor: "#00897b", color: "white", }}>
-            <CardContent sx={{ textAlign: "center" }}>
-              <Typography variant="h6">Peak Today</Typography>
-              <Typography variant="h3">{peak.today.toFixed(3)}</Typography>
-              <Typography>kW</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+            <Typography variant="h3">{monthCost.toFixed(2)}</Typography>
 
-        <Grid item xs={12} sm={4} md={3}>
-          <Card sx={{minWidth: 180,height: 140, bgcolor: "#5e35b1", color: "white", }}>
-            <CardContent sx={{ textAlign: "center" }}>
-              <Typography variant="h6">Peak Month</Typography>
-              <Typography variant="h3">{peak.month.toFixed(3)}</Typography>
-              <Typography>kW</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+            <Typography>THB</Typography>
+          </CardContent>
+        </Card>
 
+        {/* Peak Today */}
+        <Card
+          sx={{
+            width: 220,
+            height: 140,
+            bgcolor: "#00897b",
+            color: "white",
+          }}
+        >
+          <CardContent sx={{ textAlign: "center" }}>
+            <Typography variant="h6">Peak Today</Typography>
 
-      </Grid>
+            <Typography variant="h3">{peak.today.toFixed(3)}</Typography>
 
+            <Typography>kW</Typography>
+          </CardContent>
+        </Card>
+
+        {/* Peak Month */}
+        <Card
+          sx={{
+            width: 220,
+            height: 140,
+            bgcolor: "#5e35b1",
+            color: "white",
+          }}
+        >
+          <CardContent sx={{ textAlign: "center" }}>
+            <Typography variant="h6">Peak Month</Typography>
+
+            <Typography variant="h3">{peak.month.toFixed(3)}</Typography>
+
+            <Typography>kW</Typography>
+          </CardContent>
+        </Card>
+      </Box>
       <Container maxWidth="xl" sx={{ mt: 3 }}>
         <Card
           sx={{
@@ -587,11 +613,9 @@ function App() {
             >
               {devices.map((d) => (
                 <MenuItem key={d.device_id} value={d.device_id}>
-                  {d.device_name}
-                  {" - "}
-                  {d.device_id}
+                  {getDeviceConfig(d.device_id)?.location || d.device_id}
                 </MenuItem>
-              ))}
+              ))}{" "}
             </Select>
           </FormControl>
         </Card>
@@ -622,13 +646,7 @@ function App() {
           <PowerChart history={history} />
         </Card>
 
-        <Card
-          sx={{
-            mb: 3,
-            p: 2,
-            borderRadius: 3,
-          }}
-        >
+        <Card sx={{ mb: 3, p: 2, borderRadius: 3 }}>
           <Typography variant="h5" align="center" gutterBottom>
             Energy Trend
           </Typography>
@@ -638,7 +656,7 @@ function App() {
 
         <Grid container spacing={3}>
           {devices.map((d) => (
-            <Grid item xs={12} md={6} lg={4} key={d.device_id}>
+            <Grid xs={12} md={6} lg={4} key={d.device_id}>
               <Card
                 sx={{
                   bgcolor: getCardColor(d),
@@ -650,18 +668,19 @@ function App() {
                 {" "}
                 <CardContent>
                   <Typography
-                    variant="body2"
+                    variant="h6"
                     align="center"
                     sx={{
                       opacity: 0.85,
                       mb: 1,
                     }}
                   >
-                    📍 {d.location_name}
+                    {/* 📍 {getDeviceConfig(d.device_id)?.location || "-"} */}
+                    {getDeviceConfig(d.device_id)?.location || "-"}
                   </Typography>
 
                   <Typography variant="h5" align="center" gutterBottom>
-                    {d.device_name}
+                    {getDeviceConfig(d.device_id)?.device_name || d.device_id}
                   </Typography>
 
                   <Typography align="center" sx={{ mb: 2 }}>
