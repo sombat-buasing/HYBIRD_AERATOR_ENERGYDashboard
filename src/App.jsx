@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-
+import Chip from "@mui/material/Chip";
 import {
   FormControl,
   InputLabel,
@@ -13,6 +13,15 @@ import {
   Typography,
   Box,
   Button,
+} from "@mui/material";
+
+import {
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  Paper,
 } from "@mui/material";
 
 import ExcelJS from "exceljs";
@@ -33,8 +42,7 @@ function App() {
       setConfig(res.data.data);
     } catch (err) {
       console.error(err);
-    }
-  };
+    }};
 
   const electricRate = Number(config?.electric_rate || 0);
   const [selectedDevice, setSelectedDevice] = useState("");
@@ -169,10 +177,50 @@ function App() {
     }
   };
 
+  const [alarmCount, setAlarmCount] = useState(0);
+
   const [peak, setPeak] = useState({
     today: 0,
     month: 0,
   });
+
+  const [alarms, setAlarms] = useState([]);
+
+  const loadAlarms = async () => {
+    try {
+
+      const res = await axios.get(
+        `${API_URL}/api/alarm`
+      );
+
+      setAlarms(
+        res.data.data || []
+      );
+
+    } catch (err) {
+
+      console.error(err);
+
+    }
+  };
+  
+  const loadAlarmCount = async () => {
+    try {
+
+      const res = await axios.get(
+        `${API_URL}/api/alarm/count`
+      );
+
+      setAlarmCount(
+        Number(res.data.count || 0)
+      );
+
+    } catch (err) {
+
+      console.error(err);
+
+    }
+  };
 
   const loadPeakSummary = async () => {
     if (!selectedDevice) return;
@@ -258,14 +306,19 @@ function App() {
     loadData();
     loadConfig();
     loadDeviceConfig();
+    loadAlarmCount();
+    loadAlarms();
 
     const timer = setInterval(() => {
       loadData();
+      loadAlarmCount();
+      loadAlarms();
 
       if (selectedDevice) {
         loadDailySummary();
         loadMonthly(selectedDevice);
         loadPeakSummary();
+
       }
     }, 5000);
 
@@ -595,6 +648,55 @@ function App() {
             <Typography>kW</Typography>
           </CardContent>
         </Card>
+
+        {/* Alarm Count */}
+        <Card
+          sx={{
+            width: 220,
+            height: 140,
+            bgcolor: "#c62828",
+            color: "white",
+          }}
+        >
+          <CardContent sx={{
+            bgcolor: "#c62828",
+            color: "white",
+            
+          }}>
+
+            <Typography variant="h6">
+              Active Alarm
+            </Typography>
+
+            <Typography
+              variant="h3"
+              sx={{
+                animation:
+                  alarmCount > 0
+                    ? "blinker 1.5s infinite"
+                    : "none",
+
+                "@keyframes blinker": {
+                  "50%": {
+                    opacity: 0.4,
+                  },
+                },
+              }}
+            >
+              {alarmCount}
+            </Typography>
+
+            <Typography>
+              Alarms
+            </Typography>
+
+          </CardContent>
+        </Card>
+
+
+
+
+
       </Box>
       <Container maxWidth="xl" sx={{ mt: 3 }}>
         <Card
@@ -652,6 +754,99 @@ function App() {
           </Typography>
 
           <EnergyChart history={history} />
+
+          <Box sx={{ mt: 4 }}>
+
+            <Typography
+              variant="h5"
+              sx={{
+                mb: 2,
+                fontWeight: 600,
+              }}              
+            >
+              Latest Alarm
+            </Typography>
+
+            <Paper
+              elevation={3}
+              sx={{
+                maxHeight: 350,
+                overflow: "auto",
+              }}
+            >
+
+              <Table stickyHeader>
+
+                <TableHead>
+
+                  <TableRow>
+
+                    <TableCell>Time</TableCell>
+                    <TableCell>Device</TableCell>
+                    <TableCell>Location</TableCell>
+                    <TableCell>Type</TableCell>
+                    <TableCell>Message</TableCell>
+                    <TableCell>Status</TableCell>
+
+                  </TableRow>
+
+                </TableHead>
+
+                <TableBody>
+
+                  {alarms.map((a) => (
+
+                    <TableRow key={a.alarm_id}>
+
+                      <TableCell>
+                        {new Date(
+                          a.created_at
+                        ).toLocaleString()}
+                      </TableCell>
+
+                      <TableCell>
+                        {a.device_id}
+                      </TableCell>
+                      <TableCell>
+                        {a.location_name}
+                      </TableCell>
+
+                      <TableCell>
+                        {a.alarm_type}
+                      </TableCell>
+
+                      <TableCell>
+                        {a.alarm_message}
+                      </TableCell>
+
+                      <TableCell>
+                        <Chip
+                          label={a.alarm_status}
+                          color={
+                            a.alarm_status === "ACTIVE"
+                              ? "error"
+                              : "success"
+                          }
+                          size="small"
+                        />
+                      </TableCell>
+
+                    </TableRow>
+
+                  ))}
+
+                </TableBody>
+
+              </Table>
+
+            </Paper>
+
+          </Box>
+
+
+
+
+          
         </Card>
 
         <Grid container spacing={3}>
