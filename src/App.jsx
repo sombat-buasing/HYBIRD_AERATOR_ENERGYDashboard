@@ -29,6 +29,8 @@ import { saveAs } from "file-saver";
 
 import PowerChart from "./components/PowerChart";
 import EnergyChart from "./components/EnergyChart";
+import Energy30DaysChart from "./components/Energy30DaysChart";
+import Cost30DaysChart from "./components/Cost30DaysChart";
 
 import { API_URL } from "./config";
 
@@ -42,7 +44,8 @@ function App() {
       setConfig(res.data.data);
     } catch (err) {
       console.error(err);
-    }};
+    }
+  };
 
   const electricRate = Number(config?.electric_rate || 0);
   const [selectedDevice, setSelectedDevice] = useState("");
@@ -188,37 +191,48 @@ function App() {
 
   const loadAlarms = async () => {
     try {
+      const res = await axios.get(`${API_URL}/api/alarm`);
 
-      const res = await axios.get(
-        `${API_URL}/api/alarm`
-      );
-
-      setAlarms(
-        res.data.data || []
-      );
-
+      setAlarms(res.data.data || []);
     } catch (err) {
-
       console.error(err);
-
     }
   };
-  
+
+  const [analytics, setAnalytics] = useState({
+    avg_energy: 0,
+    max_energy: 0,
+    min_energy: 0,
+  });
+
+  const loadAnalytics = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/analytics/summary`);
+
+      setAnalytics(res.data.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const [cost30Days, setCost30Days] = useState([]);
+  const loadCost30Days = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/analytics/cost30days`);
+
+      setCost30Days(res.data.data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const loadAlarmCount = async () => {
     try {
+      const res = await axios.get(`${API_URL}/api/alarm/count`);
 
-      const res = await axios.get(
-        `${API_URL}/api/alarm/count`
-      );
-
-      setAlarmCount(
-        Number(res.data.count || 0)
-      );
-
+      setAlarmCount(Number(res.data.count || 0));
     } catch (err) {
-
       console.error(err);
-
     }
   };
 
@@ -244,6 +258,18 @@ function App() {
 
   const getDeviceConfig = (deviceId) => {
     return deviceConfig.find((d) => d.device_id === deviceId);
+  };
+
+  const [energy30Days, setEnergy30Days] = useState([]);
+
+  const loadEnergy30Days = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/analytics/energy30days`);
+
+      setEnergy30Days(res.data.data || []);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   useEffect(() => {
@@ -313,13 +339,18 @@ function App() {
       loadData();
       loadAlarmCount();
       loadAlarms();
+      loadConfig();
+      loadEnergy30Days();
+      loadCost30Days();
 
       if (selectedDevice) {
         loadDailySummary();
         loadMonthly(selectedDevice);
         loadPeakSummary();
-
+        loadEnergy30Days();
+        loadCost30Days();
       }
+      loadAnalytics();
     }, 5000);
 
     return () => clearInterval(timer);
@@ -494,7 +525,13 @@ function App() {
 
         {/* Online */}
         <Card sx={{ width: 220, height: 140 }}>
-          <CardContent sx={{ textAlign: "center" }}>
+          <CardContent
+            sx={{
+              textAlign: "center",
+              bgcolor:
+                summary.online === summary.devices ? "#2e7d32" : "#ef6c00",
+            }}
+          >
             <Typography variant="h6">Online</Typography>
             <Typography variant="h3">{summary.online}</Typography>
             <Typography variant="body2">Devices</Typography>
@@ -658,23 +695,18 @@ function App() {
             color: "white",
           }}
         >
-          <CardContent sx={{
-            bgcolor: "#c62828",
-            color: "white",
-            
-          }}>
-
-            <Typography variant="h6">
-              Active Alarm
-            </Typography>
+          <CardContent
+            sx={{
+              bgcolor: "#c62828",
+              color: "white",
+            }}
+          >
+            <Typography variant="h6">Active Alarm</Typography>
 
             <Typography
               variant="h3"
               sx={{
-                animation:
-                  alarmCount > 0
-                    ? "blinker 1.5s infinite"
-                    : "none",
+                animation: alarmCount > 0 ? "blinker 1.5s infinite" : "none",
 
                 "@keyframes blinker": {
                   "50%": {
@@ -686,17 +718,69 @@ function App() {
               {alarmCount}
             </Typography>
 
-            <Typography>
-              Alarms
-            </Typography>
-
+            <Typography>Alarms</Typography>
           </CardContent>
         </Card>
 
+        {/* Alalytics Avg Energy */}
+        <Card
+          sx={{
+            width: 220,
+            height: 140,
+            bgcolor: "#00897b",
+            color: "white",
+          }}
+        >
+          <CardContent sx={{ textAlign: "center" }}>
+            <Typography>Avg Daily</Typography>
 
+            <Typography variant="h3">
+              {Number(analytics.avg_energy).toFixed(2)}
+            </Typography>
 
+            <Typography>kWh</Typography>
+          </CardContent>
+        </Card>
 
+        {/* Highest Daily */}
+        <Card
+          sx={{
+            width: 220,
+            height: 140,
+            bgcolor: "#6a1b9a",
+            color: "white",
+          }}
+        >
+          <CardContent sx={{ textAlign: "center" }}>
+            <Typography>Highest Daily</Typography>
 
+            <Typography variant="h3">
+              {Number(analytics.max_energy).toFixed(2)}
+            </Typography>
+
+            <Typography>kWh</Typography>
+          </CardContent>
+        </Card>
+
+        {/* Lowest Daily */}
+        <Card
+          sx={{
+            width: 220,
+            height: 140,
+            bgcolor: "#1565c0",
+            color: "white",
+          }}
+        >
+          <CardContent sx={{ textAlign: "center" }}>
+            <Typography>Lowest Daily</Typography>
+
+            <Typography variant="h3">
+              {Number(analytics.min_energy).toFixed(2)}
+            </Typography>
+
+            <Typography>kWh</Typography>
+          </CardContent>
+        </Card>
       </Box>
       <Container maxWidth="xl" sx={{ mt: 3 }}>
         <Card
@@ -755,14 +839,29 @@ function App() {
 
           <EnergyChart history={history} />
 
-          <Box sx={{ mt: 4 }}>
+          <Card sx={{ mt: 3, p: 2 }}>
+            <Typography variant="h5" align="center" gutterBottom>
+              Energy Last 30 Days
+            </Typography>
 
+            <Energy30DaysChart data={energy30Days} />
+          </Card>
+
+          <Card sx={{ mt: 3, p: 2 }}>
+            <Typography variant="h4" align="center" gutterBottom>
+              Cost Last 30 Days
+            </Typography>
+
+            <Cost30DaysChart data={cost30Days} />
+          </Card>
+
+          <Box sx={{ mt: 4 }}>
             <Typography
               variant="h5"
               sx={{
                 mb: 2,
                 fontWeight: 600,
-              }}              
+              }}
             >
               Latest Alarm
             </Typography>
@@ -774,79 +873,47 @@ function App() {
                 overflow: "auto",
               }}
             >
-
               <Table stickyHeader>
-
                 <TableHead>
-
                   <TableRow>
-
                     <TableCell>Time</TableCell>
                     <TableCell>Device</TableCell>
                     <TableCell>Location</TableCell>
                     <TableCell>Type</TableCell>
                     <TableCell>Message</TableCell>
                     <TableCell>Status</TableCell>
-
                   </TableRow>
-
                 </TableHead>
 
                 <TableBody>
-
                   {alarms.map((a) => (
-
                     <TableRow key={a.alarm_id}>
-
                       <TableCell>
-                        {new Date(
-                          a.created_at
-                        ).toLocaleString()}
+                        {new Date(a.created_at).toLocaleString("en-GB")}
                       </TableCell>
 
-                      <TableCell>
-                        {a.device_id}
-                      </TableCell>
-                      <TableCell>
-                        {a.location_name}
-                      </TableCell>
+                      <TableCell>{a.device_id}</TableCell>
+                      <TableCell>📍 {a.location_name || "UNKNOWN"}</TableCell>
 
-                      <TableCell>
-                        {a.alarm_type}
-                      </TableCell>
+                      <TableCell>{a.alarm_type}</TableCell>
 
-                      <TableCell>
-                        {a.alarm_message}
-                      </TableCell>
+                      <TableCell>{a.alarm_message}</TableCell>
 
                       <TableCell>
                         <Chip
                           label={a.alarm_status}
                           color={
-                            a.alarm_status === "ACTIVE"
-                              ? "error"
-                              : "success"
+                            a.alarm_status === "ACTIVE" ? "error" : "success"
                           }
                           size="small"
                         />
                       </TableCell>
-
                     </TableRow>
-
                   ))}
-
                 </TableBody>
-
               </Table>
-
             </Paper>
-
           </Box>
-
-
-
-
-          
         </Card>
 
         <Grid container spacing={3}>
