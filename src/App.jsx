@@ -31,6 +31,7 @@ import PowerChart from "./components/PowerChart";
 import EnergyChart from "./components/EnergyChart";
 import Energy30DaysChart from "./components/Energy30DaysChart";
 import Cost30DaysChart from "./components/Cost30DaysChart";
+import Peak30DaysChart from "./components/Peak30DaysChart";
 
 import { API_URL } from "./config";
 
@@ -162,7 +163,20 @@ function App() {
     try {
       const res = await axios.get(`${API_URL}/api/device-config`);
 
-      setDeviceConfig(res.data.data || []);
+      const devices = res.data.data || [];
+
+      setDeviceConfig(devices);
+
+      // ตั้งค่าเฉพาะครั้งแรก
+      if (devices.length > 0 && !selectedDevice) {
+        console.log(
+  "SET DEVICE",
+  devices[0].device_id
+);
+        setSelectedDevice(devices[0].device_id);
+
+        loadTopPeakEvents(devices[0].device_id);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -272,6 +286,38 @@ function App() {
     }
   };
 
+  const [topPeakEvents, setTopPeakEvents] = useState([]);
+
+  const loadTopPeakEvents = async (deviceId) => {
+    console.log("loadTopPeakEvents:", deviceId);
+
+    if (!deviceId) return;
+
+    try {
+      const res = await axios.get(
+        `${API_URL}/api/analytics/toppeak/${deviceId}`,
+      );
+
+      console.log("Rows:", res.data.data.length);
+
+      setTopPeakEvents(res.data.data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const [peak30Days, setPeak30Days] = useState([]);
+
+  const loadPeak30Days = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/analytics/peak30days`);
+
+      setPeak30Days(res.data.data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     if (!selectedDevice) return;
 
@@ -327,6 +373,15 @@ function App() {
     fetchData();
   }, [selectedDevice]);
 
+
+  useEffect(() => {
+
+    if (selectedDevice) {
+      loadTopPeakEvents(selectedDevice);
+    }
+
+  }, [selectedDevice]);
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
@@ -334,6 +389,7 @@ function App() {
     loadDeviceConfig();
     loadAlarmCount();
     loadAlarms();
+    loadPeak30Days();
 
     const timer = setInterval(() => {
       loadData();
@@ -347,8 +403,9 @@ function App() {
         loadDailySummary();
         loadMonthly(selectedDevice);
         loadPeakSummary();
-        loadEnergy30Days();
-        loadCost30Days();
+        // loadEnergy30Days();
+        // loadCost30Days();
+        // loadPeak30Days();
       }
       loadAnalytics();
     }, 5000);
@@ -793,14 +850,28 @@ function App() {
             <InputLabel>Device</InputLabel>
 
             <Select
-              value={selectedDevice}
-              label="Device"
-              onChange={(e) => setSelectedDevice(e.target.value)}
-            >
+              value={selectedDevice || ""}
+              onChange={(e) => {
+                const deviceId = e.target.value;
+
+                setSelectedDevice(deviceId);
+
+                loadMonthly(deviceId);
+                loadPeakSummary(deviceId);
+              }}
+            > 
               {devices.map((d) => (
-                <MenuItem key={d.device_id} value={d.device_id}>
-                  {getDeviceConfig(d.device_id)?.location || d.device_id}
-                </MenuItem>
+                // <MenuItem key={d.device_id} value={d.device_id}>
+                //   {getDeviceConfig(d.device_id)?.location || d.device_id}
+                // </MenuItem>
+
+
+                <MenuItem
+  key={d.device_id}
+  value={d.device_id}
+>
+  {d.device_id}
+</MenuItem>
               ))}{" "}
             </Select>
           </FormControl>
@@ -832,6 +903,7 @@ function App() {
           <PowerChart history={history} />
         </Card>
 
+        {/* Cost Last 30 Days */}
         <Card sx={{ mb: 3, p: 2, borderRadius: 3 }}>
           <Typography variant="h5" align="center" gutterBottom>
             Energy Trend
@@ -853,6 +925,64 @@ function App() {
             </Typography>
 
             <Cost30DaysChart data={cost30Days} />
+          </Card>
+
+          <Card sx={{ mt: 3, p: 2 }}>
+            {/* Peak Demand Last 30 Days */}
+            <Typography variant="h4" align="center" gutterBottom>
+              Peak Demand Last 30 Days
+            </Typography>
+
+            <Peak30DaysChart data={peak30Days} />
+          </Card>
+
+          <Card sx={{ mt: 3, p: 2 }}>
+            <Typography variant="h4" align="center" gutterBottom>
+              Top 10 Peak Events
+            </Typography>
+
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>#</TableCell>
+
+                  <TableCell>Date/Time</TableCell>
+
+                  <TableCell>Device</TableCell>
+
+                  <TableCell>Name</TableCell>
+
+                  <TableCell align="right">Peak (kW)</TableCell>
+                </TableRow>
+              </TableHead>
+
+              <TableBody>
+                {topPeakEvents.map((row, idx) => (
+                  <TableRow key={idx}>
+                    <TableCell>{idx + 1}</TableCell>
+
+                    <TableCell>
+                      {new Date(row.created_at).toLocaleString()}
+                    </TableCell>
+
+                    <TableCell>{row.device_id}</TableCell>
+
+                    <TableCell>{row.device_name}</TableCell>
+
+                    <TableCell align="right">
+                      <Typography
+                        sx={{
+                          fontWeight: "bold",
+                          color: "#8e24aa",
+                        }}
+                      >
+                        {Number(row.power_total).toFixed(3)}
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </Card>
 
           <Box sx={{ mt: 4 }}>
