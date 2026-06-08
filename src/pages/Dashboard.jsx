@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../api";
 
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 
-import Chip from "@mui/material/Chip";
+// import Chip from "@mui/material/Chip";
 import { useNavigate } from "react-router-dom";
 
 import {
@@ -60,13 +60,12 @@ function Dashboard() {
 
   const [history, setHistory] = useState([]);
   const [monthly, setMonthly] = useState([]);
-  const [alarmCount, setAlarmCount] = useState(0);
+  const [alarms, setAlarms] = useState([]);
   const [peak, setPeak] = useState({
     today: 0,
     month: 0,
   });
 
-  const [alarms, setAlarms] = useState([]);
   const [analytics, setAnalytics] = useState({
     avg_energy: 0,
     max_energy: 0,
@@ -76,7 +75,7 @@ function Dashboard() {
   const [cost30Days, setCost30Days] = useState([]);
   const loadCost30Days = async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/analytics/cost30days`);
+      const res = await api.get(`${API_URL}/api/analytics/cost30days`);
 
       setCost30Days(res.data.data || []);
     } catch (err) {
@@ -91,17 +90,11 @@ function Dashboard() {
   const [peak30Days, setPeak30Days] = useState([]);
   const navigate = useNavigate();
 
-  // const token = localStorage.getItem("token");
-
-  // if (!token) {
-  //   return <Navigate to="/login" replace />;
-  // }
-
   const user = JSON.parse(localStorage.getItem("user"));
 
   const loadConfig = async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/config`);
+      const res = await api.get(`${API_URL}/api/config`);
 
       setConfig(res.data.data);
     } catch (err) {
@@ -145,7 +138,7 @@ function Dashboard() {
 
   const loadData = async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/current`);
+      const res = await api.get(`${API_URL}/api/current`);
 
       const data = res.data.data || [];
 
@@ -189,7 +182,7 @@ function Dashboard() {
 
   const loadDailySummary = async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/summary/${selectedDevice}`);
+      const res = await api.get(`${API_URL}/api/summary/${selectedDevice}`);
 
       const rows = res.data.data || [];
 
@@ -204,7 +197,7 @@ function Dashboard() {
 
   const loadDeviceConfig = async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/device-config`);
+      const res = await api.get(`${API_URL}/api/device-config`);
 
       const devices = res.data.data || [];
 
@@ -224,7 +217,7 @@ function Dashboard() {
 
   const loadMonthly = async (deviceId) => {
     try {
-      const res = await axios.get(`${API_URL}/api/reports/monthly/${deviceId}`);
+      const res = await api.get(`${API_URL}/api/reports/monthly/${deviceId}`);
 
       setMonthly(res.data.data || []);
     } catch (err) {
@@ -238,7 +231,7 @@ function Dashboard() {
     if (!deviceId) return;
 
     try {
-      const res = await axios.get(`${API_URL}/api/reports/monthly/${deviceId}`);
+      const res = await api.get(`${API_URL}/api/reports/monthly/${deviceId}`);
 
       console.log("Monthly Report:", res.data);
 
@@ -250,7 +243,7 @@ function Dashboard() {
 
   const loadAlarms = async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/alarm`);
+      const res = await api.get(`${API_URL}/api/alarm`);
 
       setAlarms(res.data.data || []);
     } catch (err) {
@@ -260,7 +253,7 @@ function Dashboard() {
 
   const loadAnalytics = async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/analytics/summary`);
+      const res = await api.get(`${API_URL}/api/analytics/summary`);
 
       setAnalytics(res.data.data);
     } catch (err) {
@@ -268,11 +261,34 @@ function Dashboard() {
     }
   };
 
-  const loadAlarmCount = async () => {
-    try {
-      const res = await axios.get(`${API_URL}/api/alarm/count`);
+  // const loadAlarmCount = async () => {
+  //   try {
+  //     const res = await api.get(`${API_URL}/api/alarm/count`);
 
-      setAlarmCount(Number(res.data.count || 0));
+  //     setAlarmCount(Number(res.data.count || 0));
+  //   } catch (err) {
+  //     console.error(err);
+  //   }
+  // };
+
+  const ackAlarm = async (alarmId) => {
+    if (!window.confirm("Acknowledge this alarm ?")) {
+      return;
+    }
+
+    try {
+      await api.post(`${API_URL}/api/alarm/ack/${alarmId}`);
+
+      await loadAlarms();
+
+      // const countRes =
+      //   await api.get(
+      //     `${API_URL}/api/alarm/count`
+      //   );
+
+      // setAlarmCount(
+      //   countRes.data.count
+      // );
     } catch (err) {
       console.error(err);
     }
@@ -282,7 +298,7 @@ function Dashboard() {
     if (!selectedDevice) return;
 
     try {
-      const res = await axios.get(
+      const res = await api.get(
         `${API_URL}/api/peak-summary/${selectedDevice}`,
       );
 
@@ -302,7 +318,7 @@ function Dashboard() {
 
   const loadEnergy30Days = async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/analytics/energy30days`);
+      const res = await api.get(`${API_URL}/api/analytics/energy30days`);
 
       setEnergy30Days(res.data.data || []);
     } catch (err) {
@@ -316,9 +332,7 @@ function Dashboard() {
     if (!deviceId) return;
 
     try {
-      const res = await axios.get(
-        `${API_URL}/api/analytics/toppeak/${deviceId}`,
-      );
+      const res = await api.get(`${API_URL}/api/analytics/toppeak/${deviceId}`);
 
       console.log("Rows:", res.data.data.length);
 
@@ -330,7 +344,7 @@ function Dashboard() {
 
   const loadPeak30Days = async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/analytics/peak30days`);
+      const res = await api.get(`${API_URL}/api/analytics/peak30days`);
 
       setPeak30Days(res.data.data || []);
     } catch (err) {
@@ -371,13 +385,13 @@ function Dashboard() {
 
     const fetchData = async () => {
       try {
-        const historyRes = await axios.get(
+        const historyRes = await api.get(
           `${API_URL}/api/history/${selectedDevice}`,
         );
 
         setHistory(historyRes.data.data || []);
 
-        const summaryRes = await axios.get(
+        const summaryRes = await api.get(
           `${API_URL}/api/daily-summary/${selectedDevice}`,
         );
 
@@ -395,7 +409,7 @@ function Dashboard() {
 
         // ===== Monthly =====
 
-        const monthlyRes = await axios.get(
+        const monthlyRes = await api.get(
           `${API_URL}/api/reports/monthly/${selectedDevice}`,
         );
 
@@ -419,13 +433,13 @@ function Dashboard() {
     loadData();
     loadConfig();
     loadDeviceConfig();
-    loadAlarmCount();
+    // loadAlarmCount();
     loadAlarms();
     loadPeak30Days();
 
     const timer = setInterval(() => {
       loadData();
-      loadAlarmCount();
+      // loadAlarmCount();
       loadAlarms();
       loadConfig();
       loadEnergy30Days();
@@ -590,9 +604,33 @@ function Dashboard() {
             Energy Monitor Dashboard
           </Typography>
 
-          <Button color="error" variant="contained" onClick={logout}>
-            Logout
-          </Button>
+          <Box
+            sx={{
+              display: "flex",
+              gap: 1,
+              justifyContent: "center",
+              mb: 2,
+            }}
+          >
+            <Button variant="contained" onClick={() => navigate("/")}>
+              Dashboard
+            </Button>
+
+            <Button
+              variant="contained"
+              onClick={() => navigate("/alarm-history")}
+            >
+              Alarm History
+            </Button>
+
+            <Button variant="contained" onClick={() => navigate("/reports")}>
+              Reports
+            </Button>
+
+            <Button color="error" variant="contained" onClick={logout}>
+              Logout
+            </Button>
+          </Box>
         </Box>
 
         <Typography
@@ -790,38 +828,27 @@ function Dashboard() {
         </Card>
 
         {/* Alarm Count */}
-        <Card
-          sx={{
-            width: 220,
-            height: 140,
-            bgcolor: "#c62828",
-            color: "white",
-          }}
-        >
-          <CardContent
-            sx={{
-              bgcolor: "#c62828",
-              color: "white",
-            }}
-          >
+        <Card sx={{ mt: 3 }}>
+          <CardContent>
             <Typography variant="h6">Active Alarm</Typography>
 
-            <Typography
-              variant="h3"
-              sx={{
-                animation: alarmCount > 0 ? "blinker 1.5s infinite" : "none",
+            {alarms.length > 0 ? (
+              <>
+                <Typography variant="h3">{alarms.length}</Typography>
 
-                "@keyframes blinker": {
-                  "50%": {
-                    opacity: 0.4,
-                  },
-                },
-              }}
-            >
-              {alarmCount}
-            </Typography>
-
-            <Typography>Alarms</Typography>
+                <Typography>Alarms</Typography>
+              </>
+            ) : (
+              <Typography
+                sx={{
+                  color: "green",
+                  fontWeight: "bold",
+                  mt: 3,
+                }}
+              >
+                No Active Alarm
+              </Typography>
+            )}
           </CardContent>
         </Card>
 
@@ -1102,6 +1129,7 @@ function Dashboard() {
                     <TableCell>Type</TableCell>
                     <TableCell>Message</TableCell>
                     <TableCell>Status</TableCell>
+                    <TableCell>Action</TableCell>
                   </TableRow>
                 </TableHead>
 
@@ -1120,13 +1148,14 @@ function Dashboard() {
                       <TableCell>{a.alarm_message}</TableCell>
 
                       <TableCell>
-                        <Chip
-                          label={a.alarm_status}
-                          color={
-                            a.alarm_status === "ACTIVE" ? "error" : "success"
-                          }
+                        <Button
+                          variant="contained"
+                          color="warning"
                           size="small"
-                        />
+                          onClick={() => ackAlarm(a.alarm_id)}
+                        >
+                          ACK
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}

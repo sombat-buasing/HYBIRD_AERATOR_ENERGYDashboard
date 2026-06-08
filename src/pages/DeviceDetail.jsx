@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../api";
 
 import {
   Box,
@@ -22,6 +22,7 @@ import { API_URL } from "../config";
 // import { Button } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import PowerChart from "../components/PowerChart";
+import { useCallback } from "react";
 
 const KPI = ({ title, value, unit, color = "#ffffff" }) => (
   <Card
@@ -80,60 +81,77 @@ function DeviceDetail() {
   const [device, setDevice] = useState(null);
   const [history, setHistory] = useState([]);
   const [alarms, setAlarms] = useState([]);
-  const loadAlarms = async () => {
-    if (!deviceId) return;
 
+
+  const loadAlarms = useCallback(async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/alarm/device/${deviceId}`);
+      const res = await api.get(`${API_URL}/api/alarm/device/${deviceId}`);
 
-      setAlarms(res.data.data || []);
+      setAlarms(res.data.data);
     } catch (err) {
       console.error(err);
     }
-  };
+  }, [deviceId]);
 
-  const loadHistory = async () => {
-    if (!deviceId) return;
-
+  const loadHistory = useCallback(async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/history/${deviceId}`);
+      const res = await api.get(`${API_URL}/api/history/${deviceId}`);
 
-      setHistory(res.data.data || []);
+      setHistory(res.data.data);
     } catch (err) {
       console.error(err);
     }
-  };
+  }, [deviceId]);
 
-  const loadDevice = async () => {
+  const loadDevice = useCallback(async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/current`);
-      console.log("loadDevice START");
+      const res = await api.get(`${API_URL}/api/current/${deviceId}`);
 
-      const row = res.data.data.find((d) => d.device_id === deviceId);
-
-      console.log("Found Device:", row);
-
-      setDevice(row);
+      setDevice(res.data.data);
     } catch (err) {
       console.error(err);
     }
-  };
+  }, [deviceId]);
+
+  
+  // useEffect(() => {
+  //   const loadData = async () => {
+  //     await Promise.all([loadDevice(), loadHistory(), loadAlarms()]);
+  //   };
+
+  //   loadData();
+
+  //   const timer = setInterval(loadData, 5000);
+
+  //   return () => clearInterval(timer);
+  // }, [deviceId]);
 
   useEffect(() => {
-    console.log("USE EFFECT RUN");
 
-    loadDevice();
-    loadHistory();
-    loadAlarms();
+  const loadData = async () => {
 
-    const timer = setInterval(() => {
-      loadDevice();
-      loadHistory();
-      loadAlarms();
-    }, 5000);
+    await Promise.all([
+      loadDevice(),
+      loadHistory(),
+      loadAlarms(),
+    ]);
 
-    return () => clearInterval(timer);
-  }, [deviceId]);
+  };
+
+  loadData();
+
+  const timer =
+    setInterval(loadData, 5000);
+
+  return () =>
+    clearInterval(timer);
+
+}, [
+  deviceId,
+  loadDevice,
+  loadHistory,
+  loadAlarms
+]);
 
   if (!device) {
     return (
@@ -416,13 +434,15 @@ function DeviceDetail() {
                 <TableCell>
                   <Chip
                     label={row.alarm_type}
-                    color={row.alarm_type === "HIGH_POWER" ? "error" : "warning"}
+                    color={
+                      row.alarm_type === "HIGH_POWER" ? "error" : "warning"
+                    }
                     size="small"
                   />
                 </TableCell>
 
                 <TableCell>{row.alarm_message}</TableCell>
-                
+
                 <TableCell>
                   <Chip
                     label={row.alarm_status}
