@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../api";
-
+// import Chip from "@mui/material/Chip";
 import {
   Container,
   Typography,
@@ -47,7 +47,9 @@ export default function AlarmHistory() {
 
               <TableCell>Message</TableCell>
 
-              <TableCell>Status</TableCell>
+              <TableCell>Alarm Status</TableCell>
+
+              <TableCell>ACK Status</TableCell>
 
               <TableCell>ACK By</TableCell>
 
@@ -66,7 +68,13 @@ export default function AlarmHistory() {
 
                 <TableCell>{a.alarm_message}</TableCell>
 
-                <TableCell>{a.alarm_status}</TableCell>
+                <TableCell>
+                  {a.alarm_status === "ACTIVE" ? "🔴 ACTIVE" : "🟢 CLEARED"}
+                </TableCell>
+
+                <TableCell>
+                  {Number(a.ack_status) === 1 ? "✅ ACK" : "🟡 PENDING"}
+                </TableCell>
 
                 <TableCell>{a.ack_by || "-"}</TableCell>
 
